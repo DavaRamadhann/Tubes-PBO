@@ -1,96 +1,63 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+package com.financetracker.service;
 
-    <modelVersion>4.0.0</modelVersion>
+import com.openai.client.OpenAIClient;
+import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.models.responses.Response;
+import com.openai.models.responses.ResponseCreateParams;
 
-    <groupId>com.financetracker</groupId>
-    <artifactId>financetracker</artifactId>
-    <version>1.0.0</version>
-    <packaging>jar</packaging>
+public class OpenAIService {
 
-    <name>Personal Finance Tracker</name>
+    private final OpenAIClient client;
 
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
-        <maven.compiler.release>17</maven.compiler.release>
-    </properties>
+    public OpenAIService() {
+        String apiKey = System.getenv("OPENAI_API_KEY");
 
-    <dependencies>
+        if (apiKey == null || apiKey.isEmpty()) {
+            throw new RuntimeException(
+                    "Environment variable OPENAI_API_KEY tidak ditemukan. " +
+                    "Set API key terlebih dahulu."
+            );
+        }
 
-        <!-- JSON parser -->
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>2.10.1</version>
-        </dependency>
+        this.client = OpenAIOkHttpClient.fromEnv();
+    }
 
-        <!-- OpenAI Java SDK -->
-        <dependency>
-            <groupId>com.openai</groupId>
-            <artifactId>openai-java-client</artifactId>
-            <version>0.21.0</version>
-        </dependency>
+    /**
+     * Menghasilkan saran keuangan menggunakan OpenAI Responses API (SDK baru).
+     */
+    public String getFinancialAdvice(String transactionSummary) {
 
-        <!-- Logging -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <version>2.0.13</version>
-        </dependency>
+        String systemPrompt =
+                """
+                Anda adalah penasihat keuangan pribadi yang berpengalaman.
+                Analisis transaksi pengguna dan berikan saran keuangan praktis,
+                realistis, dan relevan dengan kondisi Indonesia.
+                Fokus hanya pada 2–3 hal utama yang paling berdampak.
+                Bahasa harus jelas dan mudah dipahami.
+                """;
 
-    </dependencies>
+        String userPrompt =
+                """
+                Berikut ringkasan transaksi saya:
 
-    <build>
-        <plugins>
+                %s
 
-            <!-- Create fat JAR (executable) -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>3.3.0</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>com.financetracker.App</mainClass>
-                                </transformer>
-                            </transformers>
-                            <filters>
-                                <filter>
-                                    <artifact>*:*</artifact>
-                                    <excludes>
-                                        <exclude>META-INF/*.SF</exclude>
-                                        <exclude>META-INF/*.DSA</exclude>
-                                        <exclude>META-INF/*.RSA</exclude>
-                                    </excludes>
-                                </filter>
-                            </filters>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
+                Tolong berikan saran keuangan yang spesifik dan actionable.
+                """.formatted(transactionSummary);
 
-            <!-- Java 17 Compiler -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
-                <configuration>
-                    <source>17</source>
-                    <target>17</target>
-                    <release>17</release>
-                </configuration>
-            </plugin>
+        // Gabungkan system + user input
+        String fullPrompt = systemPrompt + "\n\n" + userPrompt;
 
-        </plugins>
-    </build>
+        ResponseCreateParams params = ResponseCreateParams.builder()
+                .model("gpt-4.1-mini")       // model modern, akurat & murah
+                .input(fullPrompt)
+                .maxOutputTokens(400)
+                .temperature(0.7)
+                .build();
 
-</project>
+        Response response = client.responses().create(params);
+
+        String raw = response.output().get(0).toString();
+        return raw;
+    }
+}
