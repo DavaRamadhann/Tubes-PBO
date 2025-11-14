@@ -1,26 +1,90 @@
 [
   {
-    "id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
-    "date": "2025-11-01",
-    "description": "Gaji Bulanan",
-    "amount": 5000000.0,
-    "type": "INCOME",
-    "category": "GAJI"
-  },
-  {
-    "id": "b2c3d4e5-f6a7-8901-2345-678901bcdef0",
-    "date": "2025-11-05",
-    "description": "Makan siang di warteg",
-    "amount": 25000.0,
-    "type": "EXPENSE",
-    "category": "MAKANAN"
-  },
-  {
     "id": "c3d4e5f6-a7b8-9012-3456-789012cdef01",
     "date": "2025-11-06",
     "description": "Naik Gojek ke kampus",
     "amount": 15000.0,
     "type": "EXPENSE",
     "category": "TRANSPORTASI"
+  },
+  {
+    "id": "7bf21a72-4af6-4410-8719-f463a2e55769",
+    "date": "2025-11-13",
+    "description": "Jajan",
+    "amount": 40000.0,
+    "type": "EXPENSE",
+    "category": "MAKANAN"
+  },
+  {
+    "id": "c8a514b4-ebbe-405a-a599-c02739245f9a",
+    "date": "2025-11-14",
+    "description": "Jajan",
+    "amount": 100000.0,
+    "type": "EXPENSE",
+    "category": "TAGIHAN"
+  },
+  {
+    "id": "7faf5acd-cb04-414d-80b6-a9be01eb0731",
+    "date": "2025-11-14",
+    "description": "Jajan",
+    "amount": 100000.0,
+    "type": "EXPENSE",
+    "category": "TAGIHAN"
+  },
+  {
+    "id": "8a8e4880-0eac-4351-b137-88ce7b382c5d",
+    "date": "2025-11-14",
+    "description": "Jajan",
+    "amount": 100000.0,
+    "type": "EXPENSE",
+    "category": "TAGIHAN"
+  },
+  {
+    "id": "827ec3c6-0448-4e5b-9620-e4ec9c389fa7",
+    "date": "2025-11-14",
+    "description": "Jajan",
+    "amount": 100000.0,
+    "type": "EXPENSE",
+    "category": "TAGIHAN"
+  },
+  {
+    "id": "8701be03-9253-4c8d-b322-2f0868b13ab0",
+    "date": "2025-11-14",
+    "description": "Jajan",
+    "amount": 100000.0,
+    "type": "EXPENSE",
+    "category": "TAGIHAN"
+  },
+  {
+    "id": "85e70d88-7dad-4de3-b9e5-07ab1ee771e7",
+    "date": "2025-11-14",
+    "description": "Jajan",
+    "amount": 100000.0,
+    "type": "EXPENSE",
+    "category": "TAGIHAN"
+  },
+  {
+    "id": "7e1faaea-5529-434b-b5da-a9348de743ee",
+    "date": "2025-11-14",
+    "description": "Jajan",
+    "amount": 100000.0,
+    "type": "EXPENSE",
+    "category": "TAGIHAN"
+  },
+  {
+    "id": "409cdc76-9afd-4ea0-8d3e-044d8c068136",
+    "date": "2025-11-14",
+    "description": "Jajan",
+    "amount": 100000.0,
+    "type": "EXPENSE",
+    "category": "TAGIHAN"
+  },
+  {
+    "id": "ae118ef6-45fd-4629-96ff-c66a349e9458",
+    "date": "2025-11-14",
+    "description": "Jajan",
+    "amount": 100000.0,
+    "type": "EXPENSE",
+    "category": "TAGIHAN"
   }
 ]
