@@ -13,16 +13,17 @@ import com.financetracker.service.TransactionService;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
+import javax.swing.table.TableColumn;
 import java.awt.*;
+import java.awt.event.ActionListener;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.Date;
 import java.util.List;
+import javax.swing.SpinnerDateModel;
 
-/**
- * GUI Utama aplikasi (JFrame).
- * Mengintegrasikan semua service dan komponen UI.
- */
 public class MainFrame extends JFrame {
 
     // Services
@@ -30,33 +31,35 @@ public class MainFrame extends JFrame {
     private ReportService reportService;
     private OpenAIService openAIService;
 
-    // Komponen GUI Utama
+    // Table & Models
     private JTable transactionTable;
     private TransactionTableModel tableModel;
-    private JProgressBar budgetProgressBar;
-    private JLabel budgetLabel;
 
-    // Komponen Input
+    // Budget UI
+    private JLabel budgetLabel;
+    private JProgressBar budgetProgressBar;
+    private JButton setBudgetButton;
+
+    // Input panel components
     private JTextField dateField;
+    private JButton datePickerButton;
     private JTextField descriptionField;
     private JTextField amountField;
     private JComboBox<TransactionType> typeComboBox;
     private JComboBox<Category> categoryComboBox;
     private JButton addButton;
 
-    // Komponen Filter
+    // Filter panel components
     private JComboBox<Category> filterCategoryComboBox;
     private JTextField filterStartDateField;
     private JTextField filterEndDateField;
     private JButton filterButton;
-    private JButton clearFilterButton;
     private JButton deleteButton;
 
-    // Komponen Laporan & AI
+    // Report & AI
     private JComboBox<ReportStrategy> reportComboBox;
     private JButton reportButton;
     private JButton aiAdviceButton;
-    private JButton setBudgetButton;
 
     private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
@@ -66,185 +69,208 @@ public class MainFrame extends JFrame {
         loadInitialData();
     }
 
-    /**
-     * Inisialisasi semua service backend.
-     */
     private void initServices() {
-        // Service utama untuk data
         transactionService = new TransactionService();
-        
-        // Service untuk laporan (Strategy)
         reportService = new ReportService();
-        
-        // Service untuk AI
         openAIService = new OpenAIService();
 
-        // Setup Observer Pattern
-        // NotificationService (Observer) mendaftar ke TransactionService (Subject)
-        NotificationService notificationLogger = new NotificationService();
-        transactionService.addObserver(notificationLogger);
+        NotificationService logger = new NotificationService();
+        transactionService.addObserver(logger);
     }
 
-    /**
-     * Inisialisasi seluruh komponen GUI.
-     */
     private void initUI() {
-        setTitle("Personal Finance Tracker");
-        setSize(1200, 800);
-        setMinimumSize(new Dimension(1000, 600));
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
-        setLayout(new BorderLayout(10, 10));
-        getContentPane().setBackground(new Color(240, 240, 240));
 
-        // Padding untuk frame utama
+        setTitle("Personal Finance Tracker");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        getContentPane().setLayout(new BorderLayout(10, 10));
         ((JPanel) getContentPane()).setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        // Panel Atas: Input dan Filter
-        JPanel topPanel = new JPanel(new GridLayout(2, 1, 10, 10));
-        topPanel.add(createInputPanel());
-        topPanel.add(createFilterPanel());
+        JPanel topPanel = new JPanel();
+        topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
         topPanel.setOpaque(false);
+
+        topPanel.add(createInputPanel());
+        topPanel.add(Box.createVerticalStrut(8));
+        topPanel.add(createFilterPanel());
+
         add(topPanel, BorderLayout.NORTH);
-
-        // Panel Tengah: Tabel Transaksi
         add(createTablePanel(), BorderLayout.CENTER);
-
-        // Panel Bawah: Budget, Laporan, dan AI
         add(createBottomPanel(), BorderLayout.SOUTH);
+
+        pack();
+        setLocationRelativeTo(null);
     }
 
-    /**
-     * Membuat Panel Input Transaksi Baru.
-     */
+    // ============================================================
+    // PANEL INPUT TRANSAKSI (FIXED WITH GRIDBAGLAYOUT)
+    // ============================================================
+
     private JPanel createInputPanel() {
-        JPanel inputPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
-        inputPanel.setBorder(new TitledBorder("Tambah Transaksi Baru"));
-        inputPanel.setOpaque(false);
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBorder(new TitledBorder("Tambah Transaksi Baru"));
+        panel.setOpaque(false);
 
-        dateField = new JTextField(LocalDate.now().format(dateFormatter), 10);
+        GridBagConstraints g = new GridBagConstraints();
+        g.insets = new Insets(5, 5, 5, 5);
+        g.fill = GridBagConstraints.HORIZONTAL;
+
+        int y = 0;
+
+        // Tanggal
+        g.gridx = 0; g.gridy = y;
+        panel.add(new JLabel("Tanggal:"), g);
+
+        dateField = new JTextField(LocalDate.now().format(dateFormatter), 12);
+        g.gridx = 1;
+        panel.add(dateField, g);
+
+        datePickerButton = new JButton("📅");
+        datePickerButton.setMargin(new Insets(2, 8, 2, 8));
+        datePickerButton.addActionListener(e -> showDatePickerDialog());
+        g.gridx = 2;
+        panel.add(datePickerButton, g);
+
+        // Deskripsi
+        y++;
+        g.gridx = 0; g.gridy = y;
+        panel.add(new JLabel("Deskripsi:"), g);
+
         descriptionField = new JTextField(20);
-        amountField = new JTextField(10);
+        g.gridx = 1; g.gridwidth = 2;
+        panel.add(descriptionField, g);
+        g.gridwidth = 1;
+
+        // Jumlah
+        y++;
+        g.gridx = 0; g.gridy = y;
+        panel.add(new JLabel("Jumlah (Rp):"), g);
+
+        amountField = new JTextField(12);
+        g.gridx = 1; g.gridwidth = 2;
+        panel.add(amountField, g);
+        g.gridwidth = 1;
+
+        // Tipe & Kategori
+        y++;
+        g.gridx = 0; g.gridy = y;
+        panel.add(new JLabel("Tipe:"), g);
+
         typeComboBox = new JComboBox<>(TransactionType.values());
+        g.gridx = 1;
+        panel.add(typeComboBox, g);
+
+        g.gridx = 2;
         categoryComboBox = new JComboBox<>(Category.values());
+        panel.add(categoryComboBox, g);
+
+        // Tombol Tambah
+        y++;
         addButton = new JButton("Tambah");
-
-        inputPanel.add(new JLabel("Tgl (Y-M-D):"));
-        inputPanel.add(dateField);
-        inputPanel.add(new JLabel("Deskripsi:"));
-        inputPanel.add(descriptionField);
-        inputPanel.add(new JLabel("Jumlah:"));
-        inputPanel.add(amountField);
-        inputPanel.add(new JLabel("Tipe:"));
-        inputPanel.add(typeComboBox);
-        inputPanel.add(new JLabel("Kategori:"));
-        inputPanel.add(categoryComboBox);
-        inputPanel.add(addButton);
-
-        // Action Listener
         addButton.addActionListener(e -> addTransaction());
 
-        return inputPanel;
+        g.gridx = 0; g.gridy = y; g.gridwidth = 3;
+        panel.add(addButton, g);
+
+        return panel;
     }
 
-    /**
-     * Membuat Panel Filter Transaksi.
-     */
-    private JPanel createFilterPanel() {
-        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
-        filterPanel.setBorder(new TitledBorder("Filter dan Aksi"));
-        filterPanel.setOpaque(false);
+    // ============================================================
+    // FILTER PANEL
+    // ============================================================
 
-        // Tambahkan "Semua" ke ComboBox Kategori Filter
-        Category[] filterCategories = new Category[Category.values().length + 1];
-        filterCategories[0] = null; // null merepresentasikan "Semua Kategori"
-        System.arraycopy(Category.values(), 0, filterCategories, 1, Category.values().length);
-        
-        filterCategoryComboBox = new JComboBox<>(filterCategories);
+    private JPanel createFilterPanel() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
+        panel.setBorder(new TitledBorder("Filter & Aksi"));
+        panel.setOpaque(false);
+
+        Category[] categories = new Category[Category.values().length + 1];
+        categories[0] = null;
+        System.arraycopy(Category.values(), 0, categories, 1, Category.values().length);
+
+        filterCategoryComboBox = new JComboBox<>(categories);
         filterCategoryComboBox.setRenderer(new DefaultListCellRenderer() {
-            @Override
-            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+            public Component getListCellRendererComponent(JList<?> list, Object value,
+                int index, boolean isSelected, boolean cellHasFocus) {
+
                 super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                if (value == null) {
-                    setText("Semua Kategori");
-                }
+                if (value == null) setText("Semua Kategori");
                 return this;
             }
         });
 
         filterStartDateField = new JTextField(10);
         filterEndDateField = new JTextField(10);
+
         filterButton = new JButton("Filter");
-        clearFilterButton = new JButton("Reset");
+        filterButton.addActionListener(e -> filterTransactions());
+
         deleteButton = new JButton("Hapus Terpilih");
         deleteButton.setBackground(new Color(220, 50, 50));
         deleteButton.setForeground(Color.WHITE);
-        deleteButton.setEnabled(false); // Aktif saat baris dipilih
-
-        filterPanel.add(new JLabel("Kategori:"));
-        filterPanel.add(filterCategoryComboBox);
-        filterPanel.add(new JLabel("Tgl Mulai:"));
-        filterPanel.add(filterStartDateField);
-        filterPanel.add(new JLabel("Tgl Akhir:"));
-        filterPanel.add(filterEndDateField);
-        filterPanel.add(filterButton);
-        filterPanel.add(clearFilterButton);
-        filterPanel.add(Box.createHorizontalStrut(20)); // Spasi
-        filterPanel.add(deleteButton);
-
-        // Action Listeners
-        filterButton.addActionListener(e -> filterTransactions());
-        clearFilterButton.addActionListener(e -> loadInitialData());
+        deleteButton.setEnabled(false);
         deleteButton.addActionListener(e -> deleteTransaction());
 
-        return filterPanel;
+        panel.add(new JLabel("Kategori:"));
+        panel.add(filterCategoryComboBox);
+
+        panel.add(new JLabel("Dari:"));
+        panel.add(filterStartDateField);
+
+        panel.add(new JLabel("Sampai:"));
+        panel.add(filterEndDateField);
+
+        panel.add(filterButton);
+        panel.add(deleteButton);
+
+        return panel;
     }
 
+    // ============================================================
+    // TABLE PANEL
+    // ============================================================
 
-    /**
-     * Membuat Panel Tabel di tengah.
-     */
     private JScrollPane createTablePanel() {
         tableModel = new TransactionTableModel();
         transactionTable = new JTable(tableModel);
 
-        transactionTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        transactionTable.setFillsViewportHeight(true);
-        transactionTable.setRowHeight(25);
-        transactionTable.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 14));
-        
-        // Sembunyikan kolom ID (biasanya tidak perlu dilihat pengguna)
-        transactionTable.removeColumn(transactionTable.getColumnModel().getColumn(0));
+        transactionTable.setRowHeight(26);
 
-        // Listener untuk mengaktifkan tombol delete
-        transactionTable.getSelectionModel().addListSelectionListener(e -> {
-            deleteButton.setEnabled(transactionTable.getSelectedRow() >= 0);
-        });
+        // sembunyikan kolom ID (model index 0)
+        TableColumn idCol = transactionTable.getColumnModel().getColumn(0);
+        transactionTable.removeColumn(idCol);
 
-        JScrollPane scrollPane = new JScrollPane(transactionTable);
-        scrollPane.setBorder(new TitledBorder("Daftar Transaksi"));
-        return scrollPane;
+        transactionTable.getSelectionModel().addListSelectionListener(
+            e -> deleteButton.setEnabled(transactionTable.getSelectedRow() >= 0)
+        );
+
+        JScrollPane scroll = new JScrollPane(transactionTable);
+        scroll.setBorder(new TitledBorder("Daftar Transaksi"));
+        scroll.setPreferredSize(new Dimension(900, 350));
+        return scroll;
     }
 
-    /**
-     * Membuat Panel Bawah (Budget, Laporan, AI).
-     */
-    private JPanel createBottomPanel() {
-        JPanel bottomPanel = new JPanel(new BorderLayout(10, 10));
-        bottomPanel.setOpaque(false);
+    // ============================================================
+    // BOTTOM PANEL (BUDGET, REPORT, AI)
+    // ============================================================
 
-        // Panel Budget
+    private JPanel createBottomPanel() {
+
+        JPanel main = new JPanel(new BorderLayout(10,10));
+        main.setOpaque(false);
+
+        // ----- BUDGET PANEL -----
         JPanel budgetPanel = new JPanel();
         budgetPanel.setLayout(new BoxLayout(budgetPanel, BoxLayout.Y_AXIS));
         budgetPanel.setBorder(new TitledBorder("Budget Bulanan"));
-        
-        budgetLabel = new JLabel("Pengeluaran: Rp 0,00 / Rp 0,00 (0%)");
+        budgetPanel.setOpaque(false);
+
+        budgetLabel = new JLabel("Pengeluaran: Rp 0 / Rp 0", SwingConstants.CENTER);
         budgetLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        budgetProgressBar = new JProgressBar(0, 100);
+        budgetProgressBar = new JProgressBar(0,100);
         budgetProgressBar.setStringPainted(true);
-        budgetProgressBar.setForeground(Color.GREEN); // Default
-        
+
         setBudgetButton = new JButton("Set Budget");
         setBudgetButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         setBudgetButton.addActionListener(e -> setBudget());
@@ -255,287 +281,311 @@ public class MainFrame extends JFrame {
         budgetPanel.add(Box.createVerticalStrut(5));
         budgetPanel.add(setBudgetButton);
 
-        // Panel Laporan & AI
+        // ----- ACTION PANEL -----
         JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
-        actionPanel.setBorder(new TitledBorder("Laporan dan Analisis"));
+        actionPanel.setBorder(new TitledBorder("Laporan & Analisis"));
 
-        // Inisialisasi strategy untuk ComboBox
-        ReportStrategy[] strategies = {
+        ReportStrategy[] options = {
             new DailyReportStrategy(),
             new MonthlyReportStrategy(),
             new YearlyReportStrategy()
-            // Tambahkan strategy lain di sini jika ada
         };
-        reportComboBox = new JComboBox<>(strategies);
+
+        reportComboBox = new JComboBox<>(options);
         reportComboBox.setRenderer(new DefaultListCellRenderer() {
-             @Override
-            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                    boolean isSelected, boolean cellHasFocus) {
                 super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                if (value instanceof ReportStrategy) {
-                    setText(((ReportStrategy) value).getReportName());
-                }
+                setText(((ReportStrategy)value).getReportName());
                 return this;
             }
         });
 
         reportButton = new JButton("Buat Laporan");
+        reportButton.addActionListener(e -> generateReport());
+
         aiAdviceButton = new JButton("Dapatkan Saran Keuangan (AI)");
-        aiAdviceButton.setBackground(new Color(60, 180, 75));
+        aiAdviceButton.setBackground(new Color(50, 150, 70));
         aiAdviceButton.setForeground(Color.WHITE);
-        
+        aiAdviceButton.addActionListener(e -> openAIChatDialog());
+
         actionPanel.add(new JLabel("Jenis Laporan:"));
         actionPanel.add(reportComboBox);
         actionPanel.add(reportButton);
-        actionPanel.add(Box.createHorizontalStrut(20));
         actionPanel.add(aiAdviceButton);
 
-        // Action Listeners
-        reportButton.addActionListener(e -> generateReport());
-        aiAdviceButton.addActionListener(e -> getAIAdvice());
+        main.add(budgetPanel, BorderLayout.WEST);
+        main.add(actionPanel, BorderLayout.CENTER);
 
-        bottomPanel.add(budgetPanel, BorderLayout.WEST);
-        bottomPanel.add(actionPanel, BorderLayout.CENTER);
-
-        return bottomPanel;
+        return main;
     }
 
-    // --- Logika Aksi ---
+    // ============================================================
+    // LOGIC METHODS
+    // ============================================================
 
-    /**
-     * Memuat data awal ke tabel dan memperbarui budget.
-     */
     private void loadInitialData() {
         refreshTable(transactionService.getAllTransactions());
         refreshBudget();
     }
 
-    /**
-     * Memperbarui tabel dengan list transaksi yang diberikan.
-     */
-    private void refreshTable(List<Transaction> transactions) {
-        tableModel.setTransactions(transactions);
-        // Sembunyikan lagi kolom ID jika tabel di-refresh
-        transactionTable.removeColumn(transactionTable.getColumnModel().getColumn(0));
+    private void refreshTable(List<Transaction> list) {
+        tableModel.setTransactions(list);
         deleteButton.setEnabled(false);
     }
 
-    /**
-     * Memperbarui Progress Bar dan Label Budget.
-     */
     private void refreshBudget() {
+
         double budget = transactionService.getMonthlyBudget();
         double spending = transactionService.getCurrentMonthSpending();
-        int percentage = 0;
 
-        if (budget > 0) {
-            percentage = (int) ((spending / budget) * 100);
-        }
+        int percent = (budget > 0) ? (int)((spending / budget)*100) : 0;
 
-        budgetLabel.setText(String.format("Pengeluaran: Rp %,.2f / Rp %,.2f", spending, budget));
-        budgetProgressBar.setValue(percentage);
-        budgetProgressBar.setString(percentage + "%");
+        budgetLabel.setText(String.format(
+            "Pengeluaran: Rp %,.2f / Rp %,.2f",
+            spending, budget
+        ));
 
-        // Ganti warna progress bar
-        if (percentage > 90) {
-            budgetProgressBar.setForeground(new Color(210, 40, 40)); // Merah
-        } else if (percentage > 70) {
-            budgetProgressBar.setForeground(new Color(230, 190, 40)); // Kuning
-        } else {
-            budgetProgressBar.setForeground(new Color(40, 180, 90)); // Hijau
-        }
+        budgetProgressBar.setValue(Math.min(100, percent));
+        budgetProgressBar.setString(percent + "%");
+
+        if (percent > 90) budgetProgressBar.setForeground(Color.RED);
+        else if (percent > 70) budgetProgressBar.setForeground(Color.ORANGE);
+        else budgetProgressBar.setForeground(new Color(40,170,80));
     }
 
-    /**
-     * Logika untuk menambah transaksi baru.
-     */
     private void addTransaction() {
         try {
+
             LocalDate date = LocalDate.parse(dateField.getText(), dateFormatter);
-            String description = descriptionField.getText();
+            String desc = descriptionField.getText().trim();
+            if (desc.isEmpty()) desc = "(No description)";
+
             double amount = Double.parseDouble(amountField.getText());
             TransactionType type = (TransactionType) typeComboBox.getSelectedItem();
             Category category = (Category) categoryComboBox.getSelectedItem();
 
-            Transaction newTransaction = TransactionFactory.createTransaction(date, description, amount, type, category);
-            transactionService.addTransaction(newTransaction);
+            Transaction t = TransactionFactory.createTransaction(
+                    date, desc, amount, type, category
+            );
 
-            // Refresh UI
+            transactionService.addTransaction(t);
             loadInitialData();
 
-            // Reset field input
             descriptionField.setText("");
             amountField.setText("");
             dateField.setText(LocalDate.now().format(dateFormatter));
 
-        } catch (DateTimeParseException ex) {
-            JOptionPane.showMessageDialog(this, "Format tanggal salah. Gunakan yyyy-MM-dd.", "Error Input", JOptionPane.ERROR_MESSAGE);
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Format jumlah salah. Masukkan angka.", "Error Input", JOptionPane.ERROR_MESSAGE);
-        } catch (IllegalArgumentException ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Error Input", JOptionPane.ERROR_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Input tidak valid: " + ex.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    /**
-     * Logika untuk menghapus transaksi yang dipilih.
-     */
     private void deleteTransaction() {
-        int selectedRow = transactionTable.getSelectedRow();
-        if (selectedRow < 0) {
-            JOptionPane.showMessageDialog(this, "Pilih transaksi yang ingin dihapus.", "Tidak Ada Pilihan", JOptionPane.WARNING_MESSAGE);
+        int row = transactionTable.getSelectedRow();
+        if (row < 0) {
+            JOptionPane.showMessageDialog(this, "Tidak ada transaksi yang dipilih.");
             return;
         }
 
-        // Konversi index view ke index model jika tabel di-sort (meskipun saat ini tidak)
-        int modelRow = transactionTable.convertRowIndexToModel(selectedRow);
-        String transactionId = (String) tableModel.getValueAt(modelRow, 0); // Ambil ID dari kolom 0
+        int modelRow = transactionTable.convertRowIndexToModel(row);
+        String id = (String) tableModel.getValueAt(modelRow, 0);
 
-        int confirm = JOptionPane.showConfirmDialog(this,
-                "Anda yakin ingin menghapus transaksi ini?",
-                "Konfirmasi Hapus",
-                JOptionPane.YES_NO_OPTION);
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "Yakin ingin menghapus transaksi ini?",
+                "Konfirmasi",
+                JOptionPane.YES_NO_OPTION
+        );
 
         if (confirm == JOptionPane.YES_OPTION) {
-            transactionService.deleteTransaction(transactionId);
-            loadInitialData(); // Refresh tabel dan budget
+            transactionService.deleteTransaction(id);
+            loadInitialData();
         }
     }
 
-    /**
-     * Logika untuk memfilter transaksi.
-     */
     private void filterTransactions() {
         try {
-            Category category = (Category) filterCategoryComboBox.getSelectedItem(); // Bisa null
-            LocalDate startDate = null;
-            LocalDate endDate = null;
+            Category cat = (Category) filterCategoryComboBox.getSelectedItem();
+            LocalDate start = filterStartDateField.getText().isBlank() ? null :
+                    LocalDate.parse(filterStartDateField.getText(), dateFormatter);
+            LocalDate end = filterEndDateField.getText().isBlank() ? null :
+                    LocalDate.parse(filterEndDateField.getText(), dateFormatter);
 
-            if (!filterStartDateField.getText().trim().isEmpty()) {
-                startDate = LocalDate.parse(filterStartDateField.getText(), dateFormatter);
-            }
-            if (!filterEndDateField.getText().trim().isEmpty()) {
-                endDate = LocalDate.parse(filterEndDateField.getText(), dateFormatter);
-            }
+            List<Transaction> list = transactionService.filterTransactions(cat, start, end);
+            refreshTable(list);
 
-            List<Transaction> filteredList = transactionService.filterTransactions(category, startDate, endDate);
-            refreshTable(filteredList);
-
-        } catch (DateTimeParseException ex) {
-            JOptionPane.showMessageDialog(this, "Format tanggal filter salah. Gunakan yyyy-MM-dd.", "Error Filter", JOptionPane.ERROR_MESSAGE);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Format tanggal salah.");
         }
     }
 
-    /**
-     * Logika untuk mengubah budget bulanan.
-     */
     private void setBudget() {
-        String currentBudget = String.valueOf(transactionService.getMonthlyBudget());
-        String input = JOptionPane.showInputDialog(this, "Masukkan budget bulanan baru:", currentBudget);
+        String current = String.valueOf(transactionService.getMonthlyBudget());
 
-        if (input != null) {
-            try {
-                double newBudget = Double.parseDouble(input);
-                if (newBudget < 0) throw new NumberFormatException();
-                
-                transactionService.setMonthlyBudget(newBudget);
-                refreshBudget(); // Perbarui tampilan budget
-                transactionService.checkBudgetStatus(); // Cek ulang status
+        String input = JOptionPane.showInputDialog(
+                this,
+                "Masukkan budget bulanan:",
+                current
+        );
 
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, "Masukkan angka positif yang valid untuk budget.", "Error Input", JOptionPane.ERROR_MESSAGE);
-            }
+        if (input == null) return;
+
+        try {
+            double value = Double.parseDouble(input);
+            if (value < 0) throw new Exception("Budget harus ≥ 0");
+
+            transactionService.setMonthlyBudget(value);
+            refreshBudget();
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Input budget tidak valid.");
         }
     }
 
-    /**
-     * Logika untuk membuat laporan (Strategy Pattern).
-     */
+    // ============================================================
+    // AI SECTION (UNCHANGED)
+    // ============================================================
+
     private void generateReport() {
-        ReportStrategy selectedStrategy = (ReportStrategy) reportComboBox.getSelectedItem();
-        if (selectedStrategy == null) {
-            JOptionPane.showMessageDialog(this, "Silakan pilih jenis laporan.", "Error Laporan", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
+        ReportStrategy strategy = (ReportStrategy) reportComboBox.getSelectedItem();
+        reportService.setStrategy(strategy);
 
-        reportService.setStrategy(selectedStrategy);
-        String reportContent = reportService.generateReport(transactionService.getAllTransactions());
+        String content = reportService.generateReport(transactionService.getAllTransactions());
 
-        // Tampilkan laporan di JTextArea dalam JScrollPane
-        JTextArea textArea = new JTextArea(reportContent);
-        textArea.setEditable(false);
-        textArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        JScrollPane scrollPane = new JScrollPane(textArea);
-        scrollPane.setPreferredSize(new Dimension(600, 400));
+        JTextArea area = new JTextArea(content);
+        area.setEditable(false);
+        area.setFont(new Font("Monospaced", Font.PLAIN, 12));
 
-        JOptionPane.showMessageDialog(this,
-                scrollPane,
-                selectedStrategy.getReportName(),
-                JOptionPane.INFORMATION_MESSAGE);
+        JScrollPane scroll = new JScrollPane(area);
+        scroll.setPreferredSize(new Dimension(600, 400));
+
+        JOptionPane.showMessageDialog(this, scroll, strategy.getReportName(), JOptionPane.INFORMATION_MESSAGE);
     }
 
-    /**
-     * Logika untuk meminta saran dari AI.
-     */
-    private void getAIAdvice() {
-        // Buat ringkasan transaksi
+    private void openAIChatDialog() {
         String summary = reportService.generateReport(transactionService.getAllTransactions());
-        
-        // Tampilkan dialog loading
-        JDialog loadingDialog = new JDialog(this, "Meminta Saran AI...", true);
-        JProgressBar loadingBar = new JProgressBar();
-        loadingBar.setIndeterminate(true);
-        loadingBar.setStringPainted(true);
-        loadingBar.setString("Menghubungi OpenAI, mohon tunggu...");
-        loadingDialog.add(new JScrollPane(loadingBar)); // (Salah, harusnya add ke content pane)
-        loadingDialog.getContentPane().add(loadingBar, BorderLayout.CENTER);
-        loadingDialog.pack();
-        loadingDialog.setSize(300, 75);
-        loadingDialog.setLocationRelativeTo(this);
-        loadingDialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
 
-        // Gunakan SwingWorker untuk tugas background (API call)
-        SwingWorker<String, Void> worker = new SwingWorker<>() {
-            @Override
-            protected String doInBackground() throws Exception {
-                // Panggil service AI
-                return openAIService.getFinancialAdvice(summary);
+        JDialog loading = new JDialog(this, "Menghubungi AI...", true);
+        JProgressBar pb = new JProgressBar();
+        pb.setIndeterminate(true);
+        loading.add(pb);
+        loading.setSize(300, 75);
+        loading.setLocationRelativeTo(this);
+
+        SwingWorker<String,Void> worker = new SwingWorker<>() {
+            protected String doInBackground() {
+                return openAIService.startFinancialAdviceSession(summary);
             }
-
-            @Override
             protected void done() {
-                // Tutup dialog loading
-                loadingDialog.dispose();
-                try {
-                    String aiResponse = get(); // Ambil hasil dari doInBackground()
-                    
-                    // Tampilkan hasil AI di JTextArea
-                    JTextArea textArea = new JTextArea(aiResponse);
-                    textArea.setWrapStyleWord(true);
-                    textArea.setLineWrap(true);
-                    textArea.setEditable(false);
-                    textArea.setBackground(getBackground()); // Latar belakang sama
-                    textArea.setFont(new Font("SansSerif", Font.PLAIN, 14));
-                    
-                    JScrollPane scrollPane = new JScrollPane(textArea);
-                    scrollPane.setPreferredSize(new Dimension(600, 400));
-                    scrollPane.setBorder(null);
+                loading.dispose();
+                String reply;
+                try { reply = get(); }
+                catch (Exception ex) { reply = "Gagal: " + ex.getMessage(); }
 
-                    JOptionPane.showMessageDialog(MainFrame.this,
-                            scrollPane,
-                            "Saran Keuangan dari AI",
-                            JOptionPane.INFORMATION_MESSAGE);
-
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    JOptionPane.showMessageDialog(MainFrame.this,
-                            "Gagal mendapatkan saran: " + e.getMessage(),
-                            "Error AI",
-                            JOptionPane.ERROR_MESSAGE);
-                }
+                showChatDialog(reply);
             }
         };
 
-        worker.execute(); // Mulai SwingWorker
-        loadingDialog.setVisible(true); // Tampilkan dialog loading (akan diblok sampai worker selesai)
+        worker.execute();
+        loading.setVisible(true);
+    }
+
+    private void showChatDialog(String firstMessage) {
+        JDialog dlg = new JDialog(this, "AI Financial Advisor", true);
+        dlg.setSize(700, 500);
+        dlg.setLayout(new BorderLayout(10,10));
+        dlg.setLocationRelativeTo(this);
+
+        JTextArea chat = new JTextArea();
+        chat.setEditable(false);
+        chat.setLineWrap(true);
+        chat.append("AI: " + firstMessage + "\n\n");
+
+        JScrollPane scroll = new JScrollPane(chat);
+
+        JTextField input = new JTextField();
+        JButton send = new JButton("Kirim");
+
+        JPanel bottom = new JPanel(new BorderLayout(5,5));
+        bottom.add(input, BorderLayout.CENTER);
+        bottom.add(send, BorderLayout.EAST);
+
+        send.addActionListener(e -> {
+            String msg = input.getText().trim();
+            if (msg.isEmpty()) return;
+
+            chat.append("YOU: " + msg + "\n");
+            input.setText("");
+
+            SwingWorker<String,Void> talk = new SwingWorker<>() {
+                protected String doInBackground() {
+                    return openAIService.continueChat(msg);
+                }
+                protected void done() {
+                    try {
+                        chat.append("AI: " + get() + "\n\n");
+                        chat.setCaretPosition(chat.getDocument().getLength());
+                    } catch (Exception ex) {
+                        chat.append("AI ERROR: " + ex.getMessage());
+                    }
+                }
+            };
+
+            talk.execute();
+        });
+
+        dlg.add(scroll, BorderLayout.CENTER);
+        dlg.add(bottom, BorderLayout.SOUTH);
+
+        dlg.setVisible(true);
+    }
+
+    // ============================================================
+    // DATE PICKER
+    // ============================================================
+
+    private void showDatePickerDialog() {
+        JDialog dialog = new JDialog(this, "Pilih Tanggal", true);
+        dialog.setSize(300,140);
+        dialog.setLayout(new BorderLayout(10,10));
+        dialog.setLocationRelativeTo(this);
+
+        SpinnerDateModel model = new SpinnerDateModel(new Date(), null, null,
+                java.util.Calendar.DAY_OF_MONTH);
+        JSpinner spinner = new JSpinner(model);
+        spinner.setEditor(new JSpinner.DateEditor(spinner, "yyyy-MM-dd"));
+
+        JButton ok = new JButton("OK");
+        JButton cancel = new JButton("Batal");
+
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        btnPanel.add(cancel);
+        btnPanel.add(ok);
+
+        dialog.add(spinner, BorderLayout.CENTER);
+        dialog.add(btnPanel, BorderLayout.SOUTH);
+
+        ok.addActionListener(e -> {
+            Date selected = model.getDate();
+            String formatted = new SimpleDateFormat("yyyy-MM-dd").format(selected);
+            dateField.setText(formatted);
+            dialog.dispose();
+        });
+
+        cancel.addActionListener(e -> dialog.dispose());
+
+        dialog.setVisible(true);
+    }
+
+    // ============================================================
+    // MAIN
+    // ============================================================
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new MainFrame().setVisible(true));
     }
 }
