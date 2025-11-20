@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        
+        {
+            "type": "java",
+            "name": "Launch App",
+            "request": "launch",
+            "mainClass": "com.financetracker.App",
+            "projectName": "financetracker", // Nama dari pom.xml
+            "env": {
+                "OPENAI_API_KEY": "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" // Taruh key kamu di sini
+            }
+        }
+    ]
+}
