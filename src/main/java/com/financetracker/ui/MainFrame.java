@@ -312,6 +312,11 @@ public class MainFrame extends JFrame {
         actionPanel.add(new JLabel("Jenis Laporan:"));
         actionPanel.add(reportComboBox);
         actionPanel.add(reportButton);
+        
+        JButton chartButton = new JButton("Lihat Grafik");
+        chartButton.addActionListener(e -> showChartDialog());
+        actionPanel.add(chartButton);
+
         actionPanel.add(aiAdviceButton);
 
         main.add(budgetPanel, BorderLayout.WEST);
@@ -542,6 +547,22 @@ public class MainFrame extends JFrame {
         dlg.add(bottom, BorderLayout.SOUTH);
 
         dlg.setVisible(true);
+    }
+
+    // ============================================================
+    // CHART DIALOG
+    // ============================================================
+
+    private void showChartDialog() {
+        JDialog dialog = new JDialog(this, "Visualisasi Pengeluaran", true);
+        dialog.setSize(600, 500);
+        dialog.setLayout(new BorderLayout());
+        dialog.setLocationRelativeTo(this);
+
+        ExpensePieChartPanel chartPanel = new ExpensePieChartPanel(transactionService.getAllTransactions());
+        dialog.add(chartPanel, BorderLayout.CENTER);
+
+        dialog.setVisible(true);
     }
 
     // ============================================================
